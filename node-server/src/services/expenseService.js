@@ -65,8 +65,6 @@ export async function initializeDatabase() {
   await expenses.createIndex({ date: -1 });
   await expenses.createIndex({ tripId: 1, date: -1 });
   await trips.createIndex({ startDate: -1 });
-  const categoryIndexes = await categories.listIndexes().toArray();
-  if (categoryIndexes.some((index) => index.name === "name_1")) await categories.dropIndex("name_1");
   await categories.createIndex({ userId: 1, name: 1 }, { unique: true, name: "user_category_unique" });
   await recurring.createIndex({ active: 1, nextRunDate: 1 });
   await lent.createIndex({ userId: 1, status: 1, date: -1 });

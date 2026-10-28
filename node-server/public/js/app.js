@@ -11,6 +11,25 @@ const shiftMonth = (value, offset) => {
 let month = monthKey(new Date()),
   meta = { categories: [], paymentMethods: [] },
   trips = [];
+const fallbackCategoryColors = [
+  "#e5735b",
+  "#5b8def",
+  "#e6a23c",
+  "#b46ee8",
+  "#4c9f70",
+  "#e06c9f",
+  "#49a6a6",
+  "#d85b66",
+  "#7c83d4",
+  "#8b7565",
+  "#718096",
+];
+function categoryColor(name, index = 0) {
+  return (
+    categoryRecords.find((record) => record.name === name)?.color ||
+    fallbackCategoryColors[index % fallbackCategoryColors.length]
+  );
+}
 function updateThemeButton() {
   const dark = document.documentElement.dataset.theme === "dark";
   $("themeIcon").textContent = dark ? "☀" : "☾";
@@ -129,25 +148,10 @@ function showDayDetails(date, items) {
   const categoryRows = Object.entries(totals).sort((a, b) => b[1] - a[1]),
     dayTotal = dayItems.reduce((sum, item) => sum + item.amount, 0);
   let cursor = 0;
-  const colors = [
-    "#e5735b",
-    "#5b8def",
-    "#e6a23c",
-    "#b46ee8",
-    "#4c9f70",
-    "#e06c9f",
-    "#49a6a6",
-    "#d85b66",
-    "#7c83d4",
-    "#8b7565",
-    "#718096",
-  ];
   const segments = categoryRows.map(([category, value], index) => {
     const start = cursor;
     cursor += (value / dayTotal) * 100;
-    const color =
-      categoryRecords.find((record) => record.name === category)?.color ||
-      colors[index % colors.length];
+    const color = categoryColor(category, index);
     return `${color} ${start}% ${cursor}%`;
   });
   $("dayTitle").textContent = day.toLocaleDateString("en-IN", {
@@ -162,9 +166,7 @@ function showDayDetails(date, items) {
     : "var(--line)";
   $("dayLegend").innerHTML = categoryRows
     .map(([category, value], index) => {
-      const color =
-        categoryRecords.find((record) => record.name === category)?.color ||
-        colors[index % colors.length];
+      const color = categoryColor(category, index);
       const percent = Math.round((value / dayTotal) * 100);
       return `<div class="legend-row"><span class="legend-dot" style="background:${color}"></span><span>${category}<small>${percent}% of daily spending</small></span><strong>${money(value)}</strong></div>`;
     })
@@ -232,14 +234,13 @@ function renderMonthlyCategoryBars(items) {
     totals[item.category] = (totals[item.category] || 0) + item.amount;
   });
   const rows = Object.entries(totals)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 8),
+      .sort((a, b) => b[1] - a[1]),
     max = rows[0]?.[1] || 1;
   $("categoryChart").innerHTML = rows.length
     ? rows
         .map(
-          ([name, value]) =>
-            `<div class="category-row"><span>${name}</span><div class="category-track"><i style="width:${(value / max) * 100}%"></i></div><strong>${money(value)}</strong></div>`,
+          ([name, value], index) =>
+            `<div class="category-row"><span>${name}</span><div class="category-track"><i style="width:${(value / max) * 100}%;background:${categoryColor(name, index)}"></i></div><strong>${money(value)}</strong></div>`,
         )
         .join("")
     : '<div class="empty">No category data yet.</div>';
@@ -267,8 +268,8 @@ async function renderExpenses(items) {
   $("expenseList").innerHTML = items.length
     ? items
         .map(
-          (x) =>
-            `<article class="expense"><div class="dot">${x.category[0]}</div><div><h3>${x.description || x.category}</h3><small>${new Date(`${x.date}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short" })} · ${x.category}${x.paymentMethod ? " · " + x.paymentMethod : ""}</small></div><div class="amount">${money(x.amount)}<small><button class="delete" data-edit="${x._id}">Edit</button><button class="delete" data-delete="${x._id}">Delete</button></small></div></article>`,
+          (x, index) =>
+            `<article class="expense"><div class="dot" style="background:${categoryColor(x.category, index)}22;color:${categoryColor(x.category, index)}">${x.category[0]}</div><div><h3>${x.description || x.category}</h3><small>${new Date(`${x.date}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short" })} · ${x.category}${x.paymentMethod ? " · " + x.paymentMethod : ""}</small></div><div class="amount">${money(x.amount)}<small><button class="delete" data-edit="${x._id}">Edit</button><button class="delete" data-delete="${x._id}">Delete</button></small></div></article>`,
         )
         .join("")
     : '<div class="empty">No expenses for this view.</div>';
